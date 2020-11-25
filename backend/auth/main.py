@@ -1,6 +1,8 @@
 import aiohttp_cors as aiohttp_cors
 from aiohttp import web
 
+from settings import HOST, PORT
+
 
 routes = web.RouteTableDef()
 
@@ -25,4 +27,4 @@ if __name__ == '__main__':
     for route in list(app.router.routes()):
         cors.add(route)
 
-    web.run_app(app, host='127.0.0.1', port=5000)
+    web.run_app(app, host=HOST, port=PORT)
