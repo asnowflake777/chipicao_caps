@@ -129,5 +129,7 @@ dmypy.json
 .pyre/
 /frontend/package-lock.json
 /backend/.idea/
+/backend/db/.idea/
+/backend/db_fast_api/.idea/
 /backend/auth/.idea/
 /backend/registration/.idea/

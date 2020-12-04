@@ -1,28 +1,29 @@
-from typing import Optional
-
 from tortoise import fields, models
-from pydantic import BaseModel
 
 
-class User(models.Model):
+class ImmutableModel:
+    pass
+
+
+class User(models.Model, ImmutableModel):
     username = fields.CharField(max_length=64, unique=True)
     email = fields.CharField(max_length=64, unique=True)
     password = fields.BinaryField()
+    image_uid = fields.CharField(max_length=64, null=True)
 
     async def serialize(self):
         return {
             'id': self.pk,
             'username': self.username,
-            'email': self.email,
         }
 
 
 class Series(models.Model):
     name = fields.CharField(max_length=64)
     year = fields.SmallIntField()
-    description = fields.TextField()
+    description = fields.TextField(null=True)
+    image_uid = fields.CharField(max_length=64, null=True)
     creator = fields.ForeignKeyField('models.User', related_name='series')
-    image_uid = fields.CharField(max_length=64)
 
     async def serialize(self):
         creator = await self.creator.first()
@@ -38,8 +39,9 @@ class Series(models.Model):
 
 class SeriesItem(models.Model):
     name = fields.CharField(max_length=64)
-    description = fields.TextField()
-    identify_number = fields.IntField()
+    description = fields.TextField(null=True)
+    identify_number = fields.IntField(null=True)
+    image_uid = fields.CharField(max_length=64, null=True)
     series = fields.ForeignKeyField('models.Series', related_name='items')
 
     async def serialize(self):
@@ -50,6 +52,7 @@ class SeriesItem(models.Model):
             'name': self.name,
             'description': self.description,
             'identify_number': self.identify_number,
+            'image_uid': self.image_uid,
             'series': series,
         }
 
@@ -67,43 +70,3 @@ class UserItemLink(models.Model):
             'user': user,
             'item': item,
         }
-
-
-MODEL_MAPPER = {
-    'user': User,
-    'series': Series,
-    'series_item': SeriesItem,
-}
-
-
-class UserValidator(BaseModel):
-    username: str
-    email: str
-    password: str
-
-
-class SeriesValidator(BaseModel):
-    name: str
-    year: int
-    description: str
-    creator: int
-
-
-class SeriesItemValidator(BaseModel):
-    name: str
-    description: str
-    identify_number: Optional[int]
-    series: int
-
-
-class UserItemLinkValidator(BaseModel):
-    user: int
-    item: int
-
-
-MODEL_DATA_VALIDATOR = {
-    User: UserValidator,
-    Series: SeriesValidator,
-    SeriesItem: SeriesItemValidator,
-    UserItemLink: UserItemLinkValidator,
-}
