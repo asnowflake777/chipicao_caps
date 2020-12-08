@@ -1,21 +1,17 @@
 from tortoise import fields, models
+from tortoise.contrib.pydantic import pydantic_model_creator
 
 
-class ImmutableModel:
-    pass
-
-
-class User(models.Model, ImmutableModel):
-    username = fields.CharField(max_length=64, unique=True)
+class User(models.Model):
+    name = fields.CharField(max_length=64, unique=True)
     email = fields.CharField(max_length=64, unique=True)
-    password = fields.BinaryField()
+    password = fields.CharField(max_length=128)
     image_uid = fields.CharField(max_length=64, null=True)
 
-    async def serialize(self):
-        return {
-            'id': self.pk,
-            'username': self.username,
-        }
+
+class UserToken(models.Model):
+    user = fields.ForeignKeyField('models.User', related_name='tokens')
+    token = fields.CharField(max_length=128)
 
 
 class Series(models.Model):
@@ -25,48 +21,22 @@ class Series(models.Model):
     image_uid = fields.CharField(max_length=64, null=True)
     creator = fields.ForeignKeyField('models.User', related_name='series')
 
-    async def serialize(self):
-        creator = await self.creator.first()
-        creator = await creator.serialize()
-        return {
-            'id': self.pk,
-            'name': self.name,
-            'description': self.description,
-            'creator': creator,
-            'image_uid': self.image_uid,
-        }
 
-
-class SeriesItem(models.Model):
+class Item(models.Model):
     name = fields.CharField(max_length=64)
     description = fields.TextField(null=True)
     identify_number = fields.IntField(null=True)
     image_uid = fields.CharField(max_length=64, null=True)
     series = fields.ForeignKeyField('models.Series', related_name='items')
 
-    async def serialize(self):
-        series = await self.series.first()
-        series = await series.serialize()
-        return {
-            'id': self.pk,
-            'name': self.name,
-            'description': self.description,
-            'identify_number': self.identify_number,
-            'image_uid': self.image_uid,
-            'series': series,
-        }
-
 
 class UserItemLink(models.Model):
     user = fields.ForeignKeyField('models.User', related_name='items')
-    item = fields.ForeignKeyField('models.SeriesItem', related_name='users')
+    item = fields.ForeignKeyField('models.Item', related_name='users')
 
-    async def serialize(self):
-        user = await self.user.first()
-        user = await user.serialize()
-        item = await self.item.first()
-        item = await item.serialize()
-        return {
-            'user': user,
-            'item': item,
-        }
+
+UserSerializer = pydantic_model_creator(User, name='User')
+UserTokenSerializer = pydantic_model_creator(UserToken, name='UserToken')
+SeriesSerializer = pydantic_model_creator(Series, name='Series')
+ItemSerializer = pydantic_model_creator(Item, name='Item')
+UserItemLinkSerializer = pydantic_model_creator(UserItemLink, name='UserItemLink')

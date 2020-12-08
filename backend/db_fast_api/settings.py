@@ -8,4 +8,14 @@ DB_PASSWORD = 'password'
 DATABASE = 'chipicao_db'
 
 DB_URL = f'postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DATABASE}'
-MODULES = {"models": ['models']}
+MODULES = {"models": ['models', 'aerich.models']}
+
+TORTOISE_ORM = {
+    "connections": {"default": DB_URL},
+    "apps": {
+        "models": {
+            "models": ["models", "aerich.models"],
+            "default_connection": "default",
+        },
+    },
+}

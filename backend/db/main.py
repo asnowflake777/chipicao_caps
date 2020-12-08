@@ -1,12 +1,12 @@
 import argparse
+from http import HTTPStatus
 
 from aiohttp import web
 from aiohttp.abc import Request
 
 from tortoise.exceptions import IntegrityError
 
-from models import ImmutableModel
-from utils import connect_to_db, get_model_n_validator
+from utils import connect_to_db, get_model_n_serializer
 from settings import DEFAULT_HOST, DEFAULT_PORT
 
 app = web.Application()
@@ -17,15 +17,11 @@ routes = web.RouteTableDef()
 class ModelView(web.View):
 
     def __init__(self, request: Request):
-        method = request.method
         model_name = request.match_info.get('model')
-        model, validator = get_model_n_validator(model_name)
-
-        if method != 'GET' and issubclass(model, ImmutableModel):
-            raise web.HTTPForbidden
+        model, serializer = get_model_n_serializer(model_name)
 
         self.model = model
-        self.model_instance_data_validator = validator
+        self.serializer = serializer
         self.model_instance_id = request.match_info.get('id')
 
         super().__init__(request)
@@ -33,18 +29,18 @@ class ModelView(web.View):
     async def get(self,):
 
         if self.model_instance_id:
-            instance = await self.model.filter(pk=self.model_instance_id).first()
-            data = await instance.serialize() if instance else {}
+            queryset = self.model.filter(pk=self.model_instance_id)
         else:
-            instances = await self.model.all()
-            data = [await instance.serialize() for instance in instances]
+            queryset = self.model.all()
 
-        if not data:
-            raise web.HTTPNotFound
-        return web.json_response(data=data)
+        data = [instance.dict() for instance in await self.serializer.from_queryset(queryset)]
+        return web.json_response(data=data, status=HTTPStatus.Ok if data else HTTPStatus.NOT_FOUND)
 
     async def post(self):
         try:
+            print(await self.request.json())
+            instance = self.serializer(**await self.request.json()) if self.request.body_exists else {}
+            print(instance)
             await self.model.create(**self.model_instance_data)
             raise web.HTTPCreated
 
