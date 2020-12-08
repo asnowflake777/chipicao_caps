@@ -4,7 +4,7 @@ from http import HTTPStatus
 from aiohttp import web
 from aiohttp.abc import Request
 
-from tortoise.exceptions import IntegrityError
+from tortoise.exceptions import IntegrityError, DoesNotExist, FieldError
 
 from utils import connect_to_db, get_model_n_serializer
 from settings import DEFAULT_HOST, DEFAULT_PORT
@@ -38,17 +38,24 @@ class ModelView(web.View):
 
     async def post(self):
         try:
-            print(await self.request.json())
-            instance = self.serializer(**await self.request.json()) if self.request.body_exists else {}
-            print(instance)
-            await self.model.create(**self.model_instance_data)
-            raise web.HTTPCreated
+            data = await self.request.json()
+            instance = await self.model.create(**data)
+            response = await self.serializer.from_tortoise_orm(instance)
+            return web.json_response(response.dict())
 
         except IntegrityError as err:
             raise web.HTTPBadRequest(text=str(err))
 
     async def patch(self):
-        return web.json_response({'hello': 'patch_handler'})
+        try:
+            await self.model.filter(pk=self.model_instance_id).update(**await self.request.json())
+            response = await self.serializer.from_tortoise_orm(await self.model.get(pk=self.model_instance_id))
+            return web.json_response(response.dict())
+
+        except (IntegrityError, FieldError) as err:
+            raise web.HTTPBadRequest(text=str(err))
+        except DoesNotExist:
+            raise web.HTTPNotFound
 
     async def delete(self):
         await self.model.filter(pk=self.model_instance_id).delete()
