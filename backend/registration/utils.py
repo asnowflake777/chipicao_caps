@@ -3,6 +3,7 @@ from base64 import b64encode
 from typing import Tuple, List
 from email_validator import validate_email, EmailNotValidError
 
+
 from settings import SALT
 
 
