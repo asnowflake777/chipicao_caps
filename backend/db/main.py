@@ -38,10 +38,10 @@ class ModelView(web.View):
 
     async def post(self):
         try:
-            data = await self.request.json()
+            data = await self.request.json() if self.request.body_exists else {}
             instance = await self.model.create(**data)
             response = await self.serializer.from_tortoise_orm(instance)
-            return web.json_response(response.dict())
+            return web.json_response(response.dict(), status=HTTPStatus.CREATED)
 
         except IntegrityError as err:
             raise web.HTTPBadRequest(text=str(err))

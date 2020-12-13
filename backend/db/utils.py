@@ -16,6 +16,7 @@ def connect_to_db(app):
 
 MODEL_MAPPER = {
     'user': (models.User, models.UserSerializer),
+    'user_token': (models.UserToken, models.UserTokenSerializer),
     'series': (models.Series, models.SeriesSerializer),
     'series_item': (models.Item, models.ItemSerializer),
     'user_item_link': (models.UserItemLink, models.UserItemLinkSerializer),

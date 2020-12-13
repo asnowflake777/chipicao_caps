@@ -1,17 +1,14 @@
-from http import HTTPStatus
+from starlette import status
 from fastapi import FastAPI
 
 from validators import User
-from settings import HOST, PORT
-from utils import encrypt_password, password_valid
+from utils import register_user
 
 
 app = FastAPI()
 
 
-@app.post('/')
-async def hello(user: User):
-    user.password = encrypt_password(user.password)
-    print(user.dict())
-    print(type(user))
-    return {'hello': 'world'}
+@app.post('/register', status_code=status.HTTP_201_CREATED)
+async def register(user: User):
+    token = await register_user(user)
+    return token
